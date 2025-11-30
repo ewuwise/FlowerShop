@@ -1,0 +1,837 @@
+I see you're in the GitHub file editor! Let me help you set up the complete FlowerShop project structure. Here's what you need to create:
+
+## 📁 **Complete Project Structure for FlowerShop**
+
+### **1. Create package.json**
+```json
+{
+  "name": "flowershop",
+  "version": "1.0.0",
+  "main": "node_modules/expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web"
+  },
+  "dependencies": {
+    "expo": "~49.0.0",
+    "expo-status-bar": "~1.6.0",
+    "react": "18.2.0",
+    "react-native": "0.72.0",
+    "@react-navigation/native": "^6.1.0",
+    "@react-navigation/stack": "^6.3.0",
+    "react-native-screens": "~3.22.0",
+    "react-native-safe-area-context": "4.6.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0"
+  }
+}
+```
+
+### **2. Create App.js**
+```javascript
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import { CartProvider } from './context/CartContext';
+import FlowerLandingPage from './components/FlowerLandingPage';
+import ProductDetailScreen from './components/ProductDetailScreen';
+import CartScreen from './components/CartScreen';
+
+const Stack = createStackNavigator();
+
+export default function App() {
+  return (
+    <CartProvider>
+      <NavigationContainer>
+        <Stack.Navigator 
+          initialRouteName="FlowerLandingPage"
+          screenOptions={{
+            headerStyle: {
+              backgroundColor: '#2d5a3d',
+            },
+            headerTintColor: '#fff',
+            headerTitleStyle: {
+              fontWeight: 'bold',
+            },
+          }}
+        >
+          <Stack.Screen 
+            name="FlowerLandingPage" 
+            component={FlowerLandingPage}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen 
+            name="ProductDetail" 
+            component={ProductDetailScreen}
+            options={{ title: 'Product Details' }}
+          />
+          <Stack.Screen 
+            name="Cart" 
+            component={CartScreen}
+            options={{ title: 'Shopping Cart' }}
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </CartProvider>
+  );
+}
+```
+
+### **3. Create context/CartContext.js**
+```javascript
+import React, { createContext, useState, useContext } from 'react';
+
+const CartContext = createContext();
+
+export const useCart = () => {
+  const context = useContext(CartContext);
+  if (!context) {
+    throw new Error('useCart must be used within a CartProvider');
+  }
+  return context;
+};
+
+export const CartProvider = ({ children }) => {
+  const [cartItems, setCartItems] = useState([]);
+
+  const addToCart = (product) => {
+    setCartItems(prevItems => {
+      const existingItem = prevItems.find(item => item.id === product.id);
+      if (existingItem) {
+        return prevItems.map(item =>
+          item.id === product.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+      return [...prevItems, { ...product, quantity: 1 }];
+    });
+  };
+
+  const removeFromCart = (productId) => {
+    setCartItems(prevItems => prevItems.filter(item => item.id !== productId));
+  };
+
+  const updateQuantity = (productId, newQuantity) => {
+    if (newQuantity < 1) {
+      removeFromCart(productId);
+      return;
+    }
+    setCartItems(prevItems =>
+      prevItems.map(item =>
+        item.id === productId ? { ...item, quantity: newQuantity } : item
+      )
+    );
+  };
+
+  const clearCart = () => {
+    setCartItems([]);
+  };
+
+  const getTotalPrice = () => {
+    return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+  };
+
+  const getTotalItems = () => {
+    return cartItems.reduce((total, item) => total + item.quantity, 0);
+  };
+
+  const value = {
+    cartItems,
+    addToCart,
+    removeFromCart,
+    updateQuantity,
+    clearCart,
+    getTotalPrice,
+    getTotalItems,
+  };
+
+  return (
+    <CartContext.Provider value={value}>
+      {children}
+    </CartContext.Provider>
+  );
+};
+```
+
+### **4. Create components/FlowerLandingPage.js**
+```javascript
+import React, { useRef, useEffect, useState } from 'react';
+import { 
+  View, 
+  Text, 
+  Image, 
+  TextInput, 
+  ScrollView, 
+  TouchableOpacity, 
+  Animated,
+  StatusBar
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useCart } from '../context/CartContext';
+import { styles } from './styles';
+
+const FlowerLandingPage = () => {
+  const navigation = useNavigation();
+  const { addToCart, cartItems } = useCart();
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  const flowerSections = [
+    {
+      title: "Featured Flowers",
+      flowers: [
+        {
+          id: 1,
+          name: "White Base",
+          price: 45,
+          image: "https://images.unsplash.com/photo-1686125616977-34f6d5979eb1?q=80&w=1856",
+          description: "Beautiful white flowers arranged elegantly"
+        },
+        {
+          id: 2,
+          name: "Red Rose",
+          price: 35,
+          image: "https://images.unsplash.com/photo-1581264692636-3cf6f29655c2?q=80&w=1887",
+          description: "Classic red roses symbolizing love"
+        },
+        {
+          id: 3,
+          name: "Lily",
+          price: 40,
+          image: "https://images.unsplash.com/photo-1579847621515-b40fcc20831e?q=80&w=1887",
+          description: "Elegant lilies for any occasion"
+        },
+        {
+          id: 4,
+          name: "Tulip",
+          price: 38,
+          image: "https://images.unsplash.com/photo-1487435636644-3ad040f0195b?q=80&w=2070",
+          description: "Colorful tulips to brighten your day"
+        }
+      ]
+    },
+    {
+      title: "Mother's Day Special",
+      flowers: [
+        {
+          id: 5,
+          name: "Pink Carnations",
+          price: 55,
+          image: "https://images.unsplash.com/photo-1519378058457-4c29a0a2efac?q=80&w=1964",
+          description: "Traditional flowers for Mother's Day"
+        },
+        {
+          id: 6,
+          name: "Mixed Bouquet",
+          price: 65,
+          image: "https://images.unsplash.com/photo-1563241527-3004b7be0ffd?q=80&w=1887",
+          description: "Special mixed bouquet for mom"
+        },
+        {
+          id: 7,
+          name: "Sunflowers",
+          price: 48,
+          image: "https://images.unsplash.com/photo-1490750967868-88aa4486c946?q=80&w=2070",
+          description: "Bright sunflowers to bring joy"
+        }
+      ]
+    },
+    {
+      title: "Anniversary Celebrations",
+      flowers: [
+        {
+          id: 8,
+          name: "Red Roses",
+          price: 75,
+          image: "https://images.unsplash.com/photo-1563241527-3004b7be0ffd?q=80&w=1887",
+          description: "Luxurious red roses for celebrations"
+        },
+        {
+          id: 9,
+          name: "Romantic Mix",
+          price: 85,
+          image: "https://images.unsplash.com/photo-1578300751624-ebc7193f784a?q=80&w=1887",
+          description: "Romantic mix for special moments"
+        },
+        {
+          id: 10,
+          name: "Luxury Bouquet",
+          price: 95,
+          image: "https://images.unsplash.com/photo-1496062031455-6e52e2c2fd98?q=80&w=2059",
+          description: "Extravagant bouquet for milestones"
+        }
+      ]
+    }
+  ];
+
+  const handleCardPress = (flower) => {
+    navigation.navigate('ProductDetail', { product: flower });
+  };
+
+  const handleAddToCart = (flower) => {
+    addToCart(flower);
+  };
+
+  const filteredSections = flowerSections.map(section => ({
+    ...section,
+    flowers: section.flowers.filter(flower => 
+      flower.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  })).filter(section => section.flowers.length > 0);
+
+  return (
+    <View style={styles.container}>
+      <StatusBar backgroundColor="#2d5a3d" barStyle="light-content" />
+      
+      {/* Header with Cart */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.title}>Blooming Flowers</Text>
+          <Text style={styles.subtitle}>
+            Beautiful flowers for every occasion
+          </Text>
+        </View>
+        <TouchableOpacity 
+          style={styles.cartIcon}
+          onPress={() => navigation.navigate('Cart')}
+        >
+          <Text style={styles.cartCount}>{cartItems.length}</Text>
+          <Text style={styles.cartIconText}>🛒</Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView 
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Hero Image */}
+        <Animated.View 
+          style={[
+            styles.heroContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }]
+            }
+          ]}
+        >
+          <Image
+            source={{ uri: "https://images.unsplash.com/photo-1463043254199-7a3efd782ad1?q=80&w=2069" }}
+            style={styles.heroImage}
+          />
+        </Animated.View>
+
+        {/* Search Bar */}
+        <Animated.View 
+          style={[
+            styles.searchContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }]
+            }
+          ]}
+        >
+          <TextInput
+            placeholder="Search for flowers..."
+            style={styles.searchInput}
+            placeholderTextColor="#888"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </Animated.View>
+
+        {/* Flower Sections */}
+        {filteredSections.map((section, index) => (
+          <FlowerSection 
+            key={section.title}
+            title={section.title}
+            flowers={section.flowers}
+            onCardPress={handleCardPress}
+            onAddToCart={handleAddToCart}
+            animationDelay={index * 200}
+          />
+        ))}
+      </ScrollView>
+    </View>
+  );
+};
+
+const FlowerSection = ({ title, flowers, onCardPress, onAddToCart, animationDelay }) => {
+  const sectionFadeAnim = useRef(new Animated.Value(0)).current;
+  const sectionSlideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(sectionFadeAnim, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(sectionSlideAnim, {
+          toValue: 0,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }, animationDelay);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <Animated.View 
+      style={[
+        styles.section,
+        {
+          opacity: sectionFadeAnim,
+          transform: [{ translateY: sectionSlideAnim }]
+        }
+      ]}
+    >
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        <TouchableOpacity>
+          <Text style={styles.viewAllText}>View All</Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={styles.horizontalScroll}
+      >
+        {flowers.map((flower) => (
+          <TouchableOpacity 
+            key={flower.id} 
+            style={styles.card}
+            onPress={() => onCardPress(flower)}
+          >
+            <Image source={{ uri: flower.image }} style={styles.cardImage} />
+            <View style={styles.cardContent}>
+              <Text style={styles.cardLabel}>{flower.name}</Text>
+              <Text style={styles.cardPrice}>${flower.price}</Text>
+              <TouchableOpacity 
+                style={styles.addToCartBtn}
+                onPress={() => onAddToCart(flower)}
+              >
+                <Text style={styles.addToCartText}>Add to Cart</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </Animated.View>
+  );
+};
+
+export default FlowerLandingPage;
+```
+
+### **5. Create components/styles.js**
+```javascript
+import { StyleSheet, Dimensions } from "react-native";
+
+const { width } = Dimensions.get('window');
+
+export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+  },
+  scrollView: {
+    flex: 1,
+  },
+
+  /* Header */
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    paddingTop: 50,
+    backgroundColor: "#2d5a3d",
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#ffffff",
+  },
+  subtitle: {
+    marginTop: 4,
+    fontSize: 14,
+    color: "#e8f5e8",
+  },
+  cartIcon: {
+    position: 'relative',
+    padding: 10,
+  },
+  cartIconText: {
+    fontSize: 24,
+  },
+  cartCount: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: '#e8b4bc',
+    color: '#fff',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: 'bold',
+    zIndex: 1,
+  },
+
+  /* Hero Image */
+  heroContainer: {
+    padding: 10,
+  },
+  heroImage: {
+    width: "100%",
+    height: 200,
+    resizeMode: "cover",
+    borderRadius: 12,
+  },
+
+  /* Search */
+  searchContainer: {
+    padding: 15,
+  },
+  searchInput: {
+    width: "100%",
+    padding: 15,
+    borderRadius: 25,
+    backgroundColor: "#f8f9fa",
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+
+  /* Sections */
+  section: {
+    marginTop: 25,
+    paddingHorizontal: 15,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#2d5a3d",
+  },
+  viewAllText: {
+    color: "#2d5a3d",
+    fontWeight: "600",
+  },
+  horizontalScroll: {
+    paddingLeft: 5,
+  },
+
+  /* Cards */
+  card: {
+    width: 160,
+    marginRight: 15,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 10,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cardImage: {
+    width: "100%",
+    height: 120,
+    borderRadius: 8,
+    resizeMode: "cover",
+  },
+  cardContent: {
+    marginTop: 10,
+  },
+  cardLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  cardPrice: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#2d5a3d",
+    marginBottom: 8,
+  },
+  addToCartBtn: {
+    backgroundColor: '#2d5a3d',
+    padding: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  addToCartText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+});
+```
+
+### **6. Create components/ProductDetailScreen.js**
+```javascript
+import React from 'react';
+import {
+  View,
+  Text,
+  Image,
+  ScrollView,
+  TouchableOpacity,
+  SafeAreaView,
+} from 'react-native';
+import { useCart } from '../context/CartContext';
+
+const ProductDetailScreen = ({ route, navigation }) => {
+  const { product } = route.params;
+  const { addToCart } = useCart();
+
+  const handleAddToCart = () => {
+    addToCart(product);
+    alert(`${product.name} added to cart!`);
+  };
+
+  const handleBuyNow = () => {
+    addToCart(product);
+    navigation.navigate('Cart');
+  };
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+      <ScrollView>
+        <Image
+          source={{ uri: product.image }}
+          style={{ width: '100%', height: 300 }}
+          resizeMode="cover"
+        />
+        
+        <View style={{ padding: 20 }}>
+          <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 10 }}>
+            {product.name}
+          </Text>
+          
+          <Text style={{ fontSize: 20, color: '#2d5a3d', fontWeight: 'bold', marginBottom: 15 }}>
+            ${product.price}
+          </Text>
+          
+          <Text style={{ fontSize: 16, lineHeight: 24, color: '#666', marginBottom: 20 }}>
+            {product.description}
+          </Text>
+
+          <View style={{ flexDirection: 'row', marginBottom: 30 }}>
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                backgroundColor: '#2d5a3d',
+                padding: 15,
+                borderRadius: 8,
+                marginRight: 10,
+                alignItems: 'center',
+              }}
+              onPress={handleAddToCart}
+            >
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>
+                Add to Cart
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                backgroundColor: '#e8b4bc',
+                padding: 15,
+                borderRadius: 8,
+                marginLeft: 10,
+                alignItems: 'center',
+              }}
+              onPress={handleBuyNow}
+            >
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>
+                Buy Now
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={{ backgroundColor: '#f8f9fa', padding: 15, borderRadius: 8 }}>
+            <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 10 }}>
+              Delivery Information
+            </Text>
+            <Text style={{ color: '#666', lineHeight: 20 }}>
+              • Free delivery on orders over $50{"\n"}
+              • Same-day delivery available{"\n"}
+              • Fresh flowers guaranteed
+            </Text>
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
+
+export default ProductDetailScreen;
+```
+
+### **7. Create components/CartScreen.js**
+```javascript
+import React from 'react';
+import {
+  View,
+  Text,
+  Image,
+  ScrollView,
+  TouchableOpacity,
+  SafeAreaView,
+} from 'react-native';
+import { useCart } from '../context/CartContext';
+
+const CartScreen = ({ navigation }) => {
+  const { cartItems, removeFromCart, updateQuantity, getTotalPrice, clearCart } = useCart();
+
+  if (cartItems.length === 0) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ fontSize: 20, marginBottom: 10 }}>Your cart is empty</Text>
+        <TouchableOpacity
+          style={{ backgroundColor: '#2d5a3d', padding: 15, borderRadius: 8 }}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={{ color: '#fff', fontSize: 16 }}>Continue Shopping</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+      <View style={{ padding: 20 }}>
+        <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 20 }}>Shopping Cart</Text>
+        
+        <ScrollView style={{ flex: 1 }}>
+          {cartItems.map((item) => (
+            <View key={item.id} style={{ flexDirection: 'row', marginBottom: 15, backgroundColor: '#f8f9fa', borderRadius: 8, padding: 10 }}>
+              <Image source={{ uri: item.image }} style={{ width: 80, height: 80, borderRadius: 8 }} />
+              
+              <View style={{ flex: 1, marginLeft: 10, justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: 16, fontWeight: 'bold' }}>{item.name}</Text>
+                <Text style={{ fontSize: 16, color: '#2d5a3d', fontWeight: 'bold' }}>${item.price}</Text>
+                
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TouchableOpacity onPress={() => updateQuantity(item.id, item.quantity - 1)}>
+                      <Text style={{ fontSize: 18, paddingHorizontal: 10 }}>-</Text>
+                    </TouchableOpacity>
+                    <Text style={{ fontSize: 16, paddingHorizontal: 10 }}>{item.quantity}</Text>
+                    <TouchableOpacity onPress={() => updateQuantity(item.id, item.quantity + 1)}>
+                      <Text style={{ fontSize: 18, paddingHorizontal: 10 }}>+</Text>
+                    </TouchableOpacity>
+                  </View>
+                  
+                  <TouchableOpacity onPress={() => removeFromCart(item.id)}>
+                    <Text style={{ color: '#ff6b6b' }}>Remove</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+
+        <View style={{ borderTopWidth: 1, borderTopColor: '#eee', paddingTop: 20 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
+            <Text style={{ fontSize: 18, fontWeight: 'bold' }}>Total:</Text>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#2d5a3d' }}>${getTotalPrice().toFixed(2)}</Text>
+          </View>
+          
+          <TouchableOpacity
+            style={{ backgroundColor: '#2d5a3d', padding: 15, borderRadius: 8, alignItems: 'center' }}
+          >
+            <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Proceed to Checkout</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </SafeAreaView>
+  );
+};
+
+export default CartScreen;
+```
+
+### **8. Create README.md**
+```markdown
+# 🌸 Blooming Flowers - React Native App
+
+A beautiful flower shop mobile application built with React Native and Expo.
+
+## Features
+
+- 🛍️ Product catalog with categories
+- 🔍 Search functionality
+- 🛒 Shopping cart management
+- 📱 Responsive design
+- 🎨 Smooth animations
+- 📱 Cross-platform (iOS & Android)
+
+## Installation
+
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Start the project: `npx expo start`
+
+## Technologies Used
+
+- React Native
+- Expo
+- React Navigation
+- Context API for state management
+
+## Project Structure
+
+```
+FlowerShop/
+├── App.js
+├── package.json
+├── context/
+│   └── CartContext.js
+└── components/
+    ├── FlowerLandingPage.js
+    ├── ProductDetailScreen.js
+    ├── CartScreen.js
+    └── styles.js
+```
+
+#
+
+Would you like me to help you with any specific file or the import process to Expo Snack?
